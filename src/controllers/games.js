@@ -19,6 +19,8 @@ export async function postGames(req, res) {
     if (nameExists.rows.length > 0) return res.sendStatus(409).send("Game already exists!")
 
     try {
+        if (stockTotal <= 0 || pricePerDay <= 0) return res.sendStatus(400).send("Invalid values");
+
         const newGame = await db.query(`
             INSERT INTO games (name, image, "stockTotal", "pricePerDay")
             VALUES ($1, $2, $3, $4);`,
