@@ -55,33 +55,19 @@ export async function updateCustomer(req, res) {
     const { id } = req.params;
     const { name, phone, cpf, birthday } = req.body;
 
-    const customerExists = await db.query(`
-        SELECT * FROM customers WHERE id = $1`,
-        [id]
-    )
-
-    if (!customerExists.rows.length > 0) return res.sendStatus(404).send("Customer does not exist!");
-
     try {
-        const customerCPF = customerExists.rows[0].cpf
+        const cpfExists = await db.query(`
+            SELECT * FROM customers WHERE cpf = $1`,
+            [cpf]
+        )
+        if (cpfExists.rows.length > 0) return res.status(409).send("Customer already exists!");
 
-        if (customerCPF !== cpf) {
-            
-            const cpfInUse = await db.query(`
-                SELECT * FROM customers WHERE "cpf" = $1`
-                [cpf]
-            );
-            if (cpfInUse.rows.length > 0) return res.sendStatus(409).send("CPF already in use!");
+        await db.query(`
+            UPDATE customers SET name=$1, phone=$2, cpf=$3, birthday=$4 WHERE id=$5`,
+            [name, phone, cpf, birthday, id]
+        );
+        res.sendStatus(200)
 
-            await db.query(`
-                UPDATE customers 
-                SET name=${name}, 
-                phone=${phone}, 
-                cpf=${cpf}, 
-                birthday=${birthday} 
-                WHERE id=${id}`);
-            res.sendStatus(200);
-        }
     } catch (err) {
         res.status(500).send(err.message);
     }
