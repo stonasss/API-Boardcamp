@@ -20,7 +20,7 @@ export async function postRentals(req, res) {
         const gameExists = await db.query(
             `SELECT * FROM games WHERE id = $1`, [gameId]);        
         if (!customerExists.rows.length > 0 || !gameExists.rows.length > 0) {
-            return res.status(400).sendStatus("Invalid information!");
+            return res.status(400).send("Invalid information!");
         }
 
         const { pricePerDay } = gameExists.rows[0];
@@ -31,7 +31,7 @@ export async function postRentals(req, res) {
         const currentStock = await db.query(
             `SELECT "stockTotal" FROM games WHERE id = $1`, [gameId]);
         if (currentStock.rows[0].stockTotal <= totalRentals.rowCount) {
-            return res.status(400).sendStatus("Game not in stock!");
+            return res.status(400).send("Game not in stock!");
         }
 
         await db.query(
