@@ -55,6 +55,47 @@ export async function postRentals(req, res) {
     }
 }
 
+export async function returnRentals(req, res) {
+    const { id } = req.params;
+    const dayOfReturn = dayjs(Date.now()).format("YYYY-MM-DD");
+    const dateReturned = new Date();
+
+    try {
+        const rentGame = await db.query(
+            `SELECT * FROM rentals WHERE "id" = $1`, [id]);
+        if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
+        if (rentGame.rows[0].returnDate !== null) return res.status(400).send("Rental already returned!");
+
+        const { rentDate, daysRented, originalPrice } = rental.rows[0];
+        const alteredRentDate = new Date(rentDate);
+        
+        const timeDifference = dateReturned.getTime() - alteredRentDate.getTime();
+        const dayDifference = Math.floor(timeDifference / (1000 * 3600 * 24));
+        
+        const tardyFee = (dayDifference - daysRented) * (originalPrice / daysRented);
+        if (tardyFee < 0) { 
+            await db.query(
+                `UPDATE rentals
+                SET "returnDate" = $1 
+                WHERE id = $2`, 
+                [dayOfReturn, id]
+            );
+            return res.status(200).send("Rental has been returned!");
+        } else {
+            await db.query(
+                `UPDATE rentals
+                SET "returnDate" = $1,
+                "delayFee" = $2
+                WHERE id = $3`,
+                [dayOfReturn, tardyFee, id]
+            );
+            return res.status(200).send("Rental has been returned!");
+        }
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
+
 export async function deleteRentals(req, res) {
     const { id } = req.params;
 
@@ -62,7 +103,7 @@ export async function deleteRentals(req, res) {
         const rentGame = await db.query(
             `SELECT * FROM rentals WHERE "id" = $1`, [id]);
         
-            if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
+        if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
         if (rentGame.rows[0].returnDate === null) return res.status(400).send("Game still rented!");
         
         await db.query(`DELETE FROM rentals WHERE "id" = $1`, [id]);
