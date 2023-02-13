@@ -66,7 +66,7 @@ export async function returnRentals(req, res) {
         if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
         if (rentGame.rows[0].returnDate !== null) return res.status(400).send("Rental already returned!");
 
-        const { rentDate, daysRented, originalPrice } = rental.rows[0];
+        const { rentDate, daysRented, originalPrice } = rentGame.rows[0];
         const alteredRentDate = new Date(rentDate);
         
         const timeDifference = dateReturned.getTime() - alteredRentDate.getTime();
