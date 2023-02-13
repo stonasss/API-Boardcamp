@@ -3,7 +3,19 @@ import  dayjs from "dayjs";
 
 export async function getRentals(req, res) {
     try {
-        const rentals = await db.query("SELECT * FROM rentals");
+        const rentals = await db.query(
+            `SELECT rentals.*,
+            json_build_object (
+                'id', customers.id,
+                'name', customers.name
+            ) AS customer,
+            json_build_object (
+                'id', games.id,
+                'name', games.name
+            ) AS game
+            FROM rentals
+            JOIN customers ON rentals."customerId" = customers.id
+            JOIN games ON rentals."gameId" = games.id;`);
         res.send(rentals.rows);
     } catch (err) {
         res.status(500).sendStatus(err.message);
@@ -16,27 +28,45 @@ export async function postRentals(req, res) {
     
     try{
         const customerExists = await db.query(
-            `SELECT * FROM customers WHERE id = $1`, [customerId]);
+            `SELECT * FROM customers 
+            WHERE id = $1`, 
+            [customerId]
+            );
         const gameExists = await db.query(
-            `SELECT * FROM games WHERE id = $1`, [gameId]);        
+            `SELECT * FROM games 
+            WHERE id = $1`, 
+            [gameId]
+            );        
         if (!customerExists.rows.length > 0 || !gameExists.rows.length > 0) {
             return res.status(400).send("Invalid information!");
         }
+        
+        const totalRentals = await db.query(
+            `SELECT * FROM rentals 
+            WHERE "gameId" = $1`, 
+            [gameId]
+            );
+        const currentStock = await db.query(
+            `SELECT "stockTotal" FROM games 
+            WHERE id = $1`, 
+            [gameId]
+            );
+        if (currentStock.rows[0].stockTotal <= totalRentals.rowCount) return res.status(400).send("Game not in stock!");
 
         const { pricePerDay } = gameExists.rows[0];
         const totalValue = pricePerDay * daysRented;
-        
-        const totalRentals = await db.query(
-            `SELECT * FROM rentals WHERE "gameId" = $1`, [gameId]);
-        const currentStock = await db.query(
-            `SELECT "stockTotal" FROM games WHERE id = $1`, [gameId]);
-        if (currentStock.rows[0].stockTotal <= totalRentals.rowCount) {
-            return res.status(400).send("Game not in stock!");
-        }
 
         await db.query(
             `INSERT INTO rentals
-            ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee")
+            (
+                "customerId", 
+                "gameId", 
+                "rentDate", 
+                "daysRented", 
+                "returnDate", 
+                "originalPrice", 
+                "delayFee"
+            )
             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
                 customerId,
@@ -62,7 +92,10 @@ export async function returnRentals(req, res) {
 
     try {
         const rentGame = await db.query(
-            `SELECT * FROM rentals WHERE "id" = $1`, [id]);
+            `SELECT * FROM rentals 
+            WHERE "id" = $1`, 
+            [id]
+            );
         if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
         if (rentGame.rows[0].returnDate !== null) return res.status(400).send("Rental already returned!");
 
@@ -101,7 +134,10 @@ export async function deleteRentals(req, res) {
 
     try {
         const rentGame = await db.query(
-            `SELECT * FROM rentals WHERE "id" = $1`, [id]);
+            `SELECT * FROM rentals 
+            WHERE "id" = $1`, 
+            [id]
+            );
         
         if (!rentGame.rows.length > 0) return res.status(404).send("Invalid rental!");
         if (rentGame.rows[0].returnDate === null) return res.status(400).send("Game still rented!");
