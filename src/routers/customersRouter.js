@@ -4,7 +4,7 @@ import {
     getCustomers,
     postCustomers,
     updateCustomer,
-} from "../controllers/customers.js";
+} from "../controllers/customers.controller.js";
 import { validateSchema } from "../middlewares/validateSchema.js";
 import { customersSchema } from "../schemas/customersSchema.js";
 

@@ -11,7 +11,7 @@ const PORT = process.env.PORT;
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use([gamesRouter, customersRouter, rentalsRouter])
+app.use([gamesRouter, customersRouter, rentalsRouter]);
 
 app.listen(PORT, () => {
     console.log(`Servidor aberto no port ${PORT}`);
